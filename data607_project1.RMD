@@ -1,0 +1,90 @@
+---
+title: "data607_project1"
+author: "Ritesh Lohiya"
+date: "February 23, 2018"
+output: html_document
+---
+```{r}
+library(stringr)
+```
+
+Getting the Chess data:
+
+```{r}
+vars <- c("pair_num", "player_name", "total_points", "Round1", "Round2", "Round3", "Round4", "Round5", "Round6", "Round7", "LR")
+data1 <- read.table("https://raw.githubusercontent.com/Riteshlohiya/Data607_Project1/master/tournamentinfo.txt", header = FALSE, skip = 4, sep = "|", fill = TRUE, stringsAsFactors = FALSE, col.names = vars)
+head(data1)
+```
+
+Removing the hyphens and all the blank strings and also the Line return column(LR):
+
+```{r}
+data2 <- subset(data1, !player_name == "", select = c(pair_num:Round7))
+head(data2)
+```
+
+Each player information is spread across 2 lines. Frirst we need to trim and remove the spaces:
+
+```{r}
+for (i in 1:length(data2)) {
+  data2[, i] <- str_trim(data2[, i])
+}
+head(data2)
+```
+
+Now instead of 2 rows, arrange it in one row:
+
+```{r}
+for (i in 1:nrow(data2)) {
+  data2$player_state[i] <- data2$pair_num[i + 1]
+  data2$player_rating[i] <- str_trim(str_extract(data2$player_name[i + 1], "[[:blank:]]{1}[[:digit:]]{3,4}"))
+}
+data2 <- subset(data2, !is.na(player_rating))
+head(data2)
+```
+
+The details for players playing against opponents:
+```{r}
+for (i in 4:10) {
+  data2[, i] <- str_trim(str_extract(data2[, i], "[[:space:]]+[[:digit:]]{1,2}"))
+}
+head(data2)
+```
+
+Finding the oppenent ratings:
+
+```{r}
+for (i in 1:nrow(data2)) {
+  for(j in 4:10) {
+    data2[i,j] <- data2[data2$pair_num == data2[i,j],12][1]
+    
+  }
+}
+
+head(data2)
+```
+
+Finding average rating of opponents:
+
+```{r}
+for (i in 4:10) {
+  data2[, i] <- as.numeric(data2[, i])
+}
+data2$player_rating <- as.numeric(data2$player_rating)
+data2$total_points <- as.numeric(data2$total_points)
+data2$avg_opponent_rating <- round(round(rowMeans(data2[, c(4:10)], na.rm = TRUE), 1))
+head(data2)
+```
+
+Now writing only the required columns to the .csv file:
+
+```{r}
+final_data <- subset(data2, TRUE, c(player_name, player_state, total_points, player_rating, avg_opponent_rating))
+row.names(final_data) <- 1:64
+write.table(final_data, file = "C:/Users/Arnav/Documents/GitHub/Data607_Project1/tournament_data.csv", sep = ",", row.names = FALSE)
+```
+
+
+
+
+
